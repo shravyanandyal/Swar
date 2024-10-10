@@ -1,13 +1,16 @@
-
 .custom-navbar {
-    background-color:black;
-   
+    background-color: black;
+}
+
+.music-icon {
+    font-size: 30px; /* Larger size for visibility */
+    color: white; /* White color to contrast with the navbar background */
 }
 
 .brand {
     font-size: 1.3rem; /* Increase the font size */
     font-weight: bold;
-    color: #1db954 !important; /* Highlight Swar in green */
+    color: #ffffff !important; /* Keep Swar in white */
     text-transform: uppercase; /* Optional: Make the text uppercase */
 }
 
@@ -18,6 +21,11 @@
     font-weight: 500;
     text-decoration: none;
     transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.active-nav {
+    color: #148f3d !important; /* Highlight current component in darker green */
+    font-weight: bold;
 }
 
 .nav-link:hover {

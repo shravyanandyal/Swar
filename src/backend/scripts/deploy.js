@@ -14,14 +14,20 @@ async function main() {
   const gasPrice = ethers.utils.parseUnits('25', 'gwei'); // Adjusted gas price
 
   try {
+    // Deploy Marketplace contract
     const marketplace = await Marketplace.deploy(1, { gasLimit, gasPrice });
     await marketplace.deployed();
 
+    // Deploy NFT contract
     const nft = await NFT.deploy({ gasLimit, gasPrice });
     await nft.deployed();
 
     console.log("Marketplace address:", marketplace.address);
     console.log("NFT address:", nft.address);
+
+    // Check and log the balance of the marketplace contract
+    const marketplaceBalance = await ethers.provider.getBalance(marketplace.address);
+    console.log("Marketplace contract balance:", ethers.utils.formatEther(marketplaceBalance), "ETH");
 
     saveFrontendFiles(marketplace, "Marketplace");
     saveFrontendFiles(nft, "NFT");

@@ -1,28 +1,28 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { Navbar, Nav, Button, Container } from 'react-bootstrap';
-import mar from './s.png';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMusic } from '@fortawesome/free-solid-svg-icons';
 
 const Navigation = ({ web3Handler, account }) => {
     return (
-        <Navbar expand="lg" style={{ backgroundColor: '#1db954'}}>
+        <Navbar expand="lg" style={{ backgroundColor: '#1db954' }}>
             <Container>
-                <Navbar.Brand>
-                    <img src={mar} width="40" height="40" className="" alt="" />
+                <Navbar.Brand className="navbar-brand">
+                    <FontAwesomeIcon icon={faMusic} className="music-icon" />
                     &nbsp; Swar
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="responsive-navbar-nav" />
                 <Navbar.Collapse id="responsive-navbar-nav">
                     <Nav className="me-auto">
-                        <Nav.Link as={Link} to="/">Home</Nav.Link>
-                        <Nav.Link as={Link} to="/about">About Swar</Nav.Link>
-                        <Nav.Link as={Link} to="/forYou">ForYou</Nav.Link>
-                        <Nav.Link as={Link} to="/create">Share Your Music</Nav.Link>
-                        <Nav.Link as={Link} to="/NFT">Browse NFTs</Nav.Link> 
-                        <Nav.Link as={Link} to="/my-listed-items">My Items</Nav.Link>
-                        <Nav.Link as={Link} to="/my-purchases">My Purchases</Nav.Link>
-                        <Nav.Link as={Link} to="/MyRoyalty">Royalty Earned</Nav.Link>
-                        <Nav.Link as={Link} to="/Notifications">Notifications</Nav.Link>
-                       
+                        <Nav.Link as={NavLink} exact to="/" activeClassName="active-nav">Home</Nav.Link>
+                        <Nav.Link as={NavLink} to="/about" activeClassName="active-nav">About Swar</Nav.Link>
+                        <Nav.Link as={NavLink} to="/forYou" activeClassName="active-nav">ForYou</Nav.Link>
+                        <Nav.Link as={NavLink} to="/create" activeClassName="active-nav">Share Your Music</Nav.Link>
+                        <Nav.Link as={NavLink} to="/NFT" activeClassName="active-nav">Browse NFTs</Nav.Link> 
+                        <Nav.Link as={NavLink} to="/my-listed-items" activeClassName="active-nav">My Items</Nav.Link>
+                        <Nav.Link as={NavLink} to="/my-purchases" activeClassName="active-nav">My Purchases</Nav.Link>
+                        <Nav.Link as={NavLink} to="/MyRoyalty" activeClassName="active-nav">Royalty Earned</Nav.Link>
+                        <Nav.Link as={NavLink} to="/Notifications" activeClassName="active-nav">Notifications</Nav.Link>
                     </Nav>
                     <Nav>
                         {account ? (

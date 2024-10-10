@@ -26,6 +26,7 @@ import { MusicPlayerProvider } from './MusicPlayerContext';
 
 import './App.css';
 import axios from 'axios';
+import About from './About.js';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -288,7 +289,9 @@ function App() {
               </div>
             ) : (
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<Home marketplaceContract={marketplace} nft={nft} account={account} />} />
+                <Route path="/about" element={<About marketplaceContract={marketplace} nft={nft} account={account} />} />
+              
                 <Route path="/NFT" element={<Main marketplace={marketplace} nft={nft} />} />
                 <Route path="/create" element={<CreateMusic marketplace={marketplace} nft={nft} />} />
                 <Route path="/create-nft/:songId" element={<Create marketplace={marketplace} nft={nft} account={account} songs={songs} />} />
@@ -296,7 +299,7 @@ function App() {
 
                 <Route path="/my-purchases" element={<MyPurchases marketplace={marketplace} nft={nft} account={account} />} />
                 
-               
+                <Route path="/MyRoyalty" element={<MyRoyalty songs={songs}/>} />
                   <Route path="/forYou" element={<ForYou/>} />
                   
                 

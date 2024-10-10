@@ -1,0 +1,150 @@
+/* Root Container */
+.about-container {
+    padding: 40px;
+    background-color: #121212;
+    color:  #b3b3b3;;
+    font-family: 'Arial', sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  /* Section Styles */
+  .about-intro, 
+  .about-why, 
+  .about-how, 
+  .about-advantages, 
+  .about-conclusion {
+    margin-bottom: 60px;
+    padding: 20px 0;
+  }
+  
+  
+  /* Flexbox Layout for Side-by-Side */
+  .flex-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  
+  .flex-section img {
+    width: 45%;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+  
+  .flex-section div {
+    width: 45%;
+  }
+
+  /* Intro Section */
+.about-intro h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+  
+  .about-intro p {
+    max-width: 50%; /* Limit text width */
+    line-height: 1.6;
+  }
+  
+  .about-intro img {
+    width: 40%;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+  
+  /* Headings */
+  h1, h2 {
+    color: #1db954;
+    margin-bottom: 20px;
+    font-size: 2rem;
+  }
+  
+  /* Paragraphs and List Items */
+  p, ul {
+    line-height: 1.8;
+    font-size: 18px;
+    margin: 0 auto;
+  }
+  
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  ul li {
+    margin-bottom: 15px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Icon Styling */
+  ul li img.icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+  }
+  
+  /* For Advantages Section */
+  .about-advantages {
+    justify-content: space-between;
+    gap: 40px;
+  }
+  
+  .advantage {
+    max-width: 80%;
+    text-align: center;
+  }
+  
+  /* Conclusion Styling */
+  .about-conclusion {
+    background-color: #1db954;
+    color: #121212;
+    padding: 40px;
+    border-radius: 8px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .about-conclusion p {
+    font-size: 22px;
+    font-weight: bold;
+  }
+  .action-links {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    gap: 20px; /* Spacing between the links */
+  }
+  
+  .action-link {
+    padding: 15px 30px;
+    background-color: #1db954; /* Spotify Green */
+    color: #121212; /* Black background color */
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.2s;
+  }
+  
+  .action-link {
+    background-color: #b3b3b3; /* Lighten background on hover */
+    color: #121212; /* Keep text color dark */
+    transform: translateY(-2px); /* Slight lift effect on hover */
+  }
+  
+  
+  @media screen and (max-width: 768px) {
+    .flex-section {
+      flex-direction: column;
+      text-align: center;
+    }
+    .flex-section img, .flex-section div {
+      width: 100%;
+    }
+  }
+  

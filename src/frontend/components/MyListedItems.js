@@ -1,22 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { Row, Col, Card, Button } from 'react-bootstrap';
-import styles from './MyListedItems.module.css';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Row, Col, Card, Button } from "react-bootstrap";
+import styles from "./MyListedItems.module.css";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
 export default function MyListedItems({ marketplace, nft, account }) {
   const [loading, setLoading] = useState(true);
   const [listedItems, setListedItems] = useState([]);
   const [songs, setSongs] = useState([]);
   const [soldNFTs, setSoldNFTs] = useState([]);
+  const ORIGINAL_PRICE = ethers.utils.parseEther("0.001"); // Original price is 0.001 ETH
+
+  const fetchSongsFromPinata = async () => {
+    const songsIpfsHash = localStorage.getItem("songsIpfsHash");
+    if (!songsIpfsHash) {
+      console.error("No IPFS hash found in local storage.");
+      return [];
+    }
+
+    console.log("Fetching songs using IPFS hash:", songsIpfsHash);
+
+    try {
+      const metadataResponse = await axios.get(
+        `https://gateway.pinata.cloud/ipfs/${songsIpfsHash}`
+      );
+      const metadata = metadataResponse.data;
+
+      console.log("Fetched songs metadata:", metadata);
+      return metadata; // Return the fetched metadata
+    } catch (error) {
+      console.error("Error fetching songs from Pinata:", error);
+      return []; // Return an empty array on error
+    }
+  };
 
   const loadListedItems = async () => {
     setLoading(true);
     try {
       const itemCount = await marketplace.itemCount();
       let _listedItems = [];
-
+      const songsMetadata = await fetchSongsFromPinata();
       for (let indx = 1; indx <= itemCount; indx++) {
         const i = await marketplace.items(indx);
         if (i.seller.toLowerCase() === account.toLowerCase()) {
@@ -24,15 +48,41 @@ export default function MyListedItems({ marketplace, nft, account }) {
           const response = await fetch(uri);
           const metadata = await response.json();
           const totalPrice = await marketplace.getTotalPrice(i.itemId);
+          const songData = songsMetadata.find(
+            (song) =>
+              song.songName.toLowerCase() === metadata.name.toLowerCase()
+          );
+
+          if (!songData) {
+            console.warn(`No song data found for tokenId: ${item.tokenId}`);
+            continue;
+          }
+          // Calculate dynamic price
+          const alpha = 0.1; // Adjust based on engagement data
+          const beta = 1; // Adjust based on engagement data
+          const likesFactor = Math.log1p(songData.likesCount); // log(likesCount + 1)
+          const listensFactor = Math.log1p(songData.listenCount); // log(listenCount + 1)
+
+          // Calculate the dynamic price based on popularity
+          const popularityFactor =
+            1 + alpha * likesFactor + beta * listensFactor;
+          console.log("popularity factor", popularityFactor);
+          const dynamicPrice = ethers.utils.parseEther(
+            (
+              parseFloat(ethers.utils.formatEther(ORIGINAL_PRICE)) *
+              popularityFactor
+            ).toFixed(5)
+          );
 
           let item = {
             totalPrice,
+            dynamicPrice: dynamicPrice,
             price: i.price,
             itemId: i.itemId,
             name: metadata.name,
             description: metadata.description,
             image: metadata.image,
-            artist: metadata.artistName
+            artist: metadata.artistName,
           };
 
           _listedItems.push(item);
@@ -46,17 +96,19 @@ export default function MyListedItems({ marketplace, nft, account }) {
   };
 
   const fetchSongs = async () => {
-    const existingIpfsHash = localStorage.getItem('songsIpfsHash');
+    const existingIpfsHash = localStorage.getItem("songsIpfsHash");
     if (!existingIpfsHash || !account) {
-      console.log('No existing IPFS hash found or no account connected.');
+      console.log("No existing IPFS hash found or no account connected.");
       return;
     }
-  
+
     try {
-      const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${existingIpfsHash}`);
+      const response = await axios.get(
+        `https://gateway.pinata.cloud/ipfs/${existingIpfsHash}`
+      );
       if (response.data) {
         // Filter songs based on artistId matching the current MetaMask account
-        const userSongs = response.data.filter(song => {
+        const userSongs = response.data.filter((song) => {
           if (song.artistId) {
             return song.artistId.toLowerCase() === account.toLowerCase();
           }
@@ -65,7 +117,7 @@ export default function MyListedItems({ marketplace, nft, account }) {
         setSongs(userSongs);
       }
     } catch (error) {
-      console.error('Error fetching songs:', error);
+      console.error("Error fetching songs:", error);
     }
   };
 
@@ -74,16 +126,20 @@ export default function MyListedItems({ marketplace, nft, account }) {
     try {
       const itemCount = await marketplace.itemCount();
       let _soldNFTs = [];
-  
+
       for (let indx = 1; indx <= itemCount; indx++) {
         const i = await marketplace.items(indx);
         console.log("Item:", i);
-        if (i.buyer && account && i.buyer.toLowerCase() === account.toLowerCase()) {
+        if (
+          i.buyer &&
+          account &&
+          i.buyer.toLowerCase() === account.toLowerCase()
+        ) {
           const uri = await nft.tokenURI(i.tokenId);
           const response = await fetch(uri);
           const metadata = await response.json();
           const totalPrice = await marketplace.getTotalPrice(i.itemId);
-  
+
           let nftItem = {
             totalPrice,
             price: i.price,
@@ -91,9 +147,9 @@ export default function MyListedItems({ marketplace, nft, account }) {
             name: metadata.name,
             description: metadata.description,
             image: metadata.image,
-            artist: metadata.artistName
+            artist: metadata.artistName,
           };
-  
+
           _soldNFTs.push(nftItem);
         }
       }
@@ -103,22 +159,23 @@ export default function MyListedItems({ marketplace, nft, account }) {
     }
     setLoading(false);
   };
-  
+
   useEffect(() => {
     loadListedItems();
     fetchSongs();
     loadSoldNFTs();
   }, [account]);
 
-  if (loading) return (
-    <main style={{ padding: "1rem 0" }}>
-      <h2>Loading...</h2>
-    </main>
-  );
+  if (loading)
+    return (
+      <main style={{ padding: "1rem 0" }}>
+        <h2>Loading...</h2>
+      </main>
+    );
 
   return (
     <div className={styles.container}>
-      {listedItems.length > 0 ?
+      {listedItems.length > 0 ? (
         <div>
           <h2 className={styles.title}>Listed NFTs</h2>
           <Row xs={1} md={2} lg={4} className="g-4 py-3">
@@ -127,7 +184,7 @@ export default function MyListedItems({ marketplace, nft, account }) {
                 <Card className={styles.card}>
                   <Card.Img variant="top" src={item.image} />
                   <Card.Footer className={styles.footer}>
-                    <div>{ethers.utils.formatEther(item.totalPrice)} ETH</div>
+                    <div>{ethers.utils.formatEther(item.dynamicPrice)} ETH</div>
                     <div>{item.name}</div>
                     <div>{item.artist}</div>
                   </Card.Footer>
@@ -136,12 +193,12 @@ export default function MyListedItems({ marketplace, nft, account }) {
             ))}
           </Row>
         </div>
-        :
+      ) : (
         <main style={{ padding: "1rem 0" }}>
           <h2>No listed NFTs</h2>
         </main>
-      }
-      {songs.length > 0 ?
+      )}
+      {songs.length > 0 ? (
         <div>
           <hr />
           <h2 className={styles.title}>Uploaded Songs</h2>
@@ -155,9 +212,7 @@ export default function MyListedItems({ marketplace, nft, account }) {
                     <Card.Text>Song Name: {song.songName}</Card.Text>
                     <Card.Text>Artist: {song.artistName}</Card.Text>
                     <Card.Text>Listen Count: {song.listenCount}</Card.Text>
-                    <Link
-                      to={`/create-nft/${song.id}`}
-                    >
+                    <Link to={`/create-nft/${song.id}`}>
                       <Button variant="primary">Create NFT</Button>
                     </Link>
                   </Card.Body>
@@ -169,12 +224,12 @@ export default function MyListedItems({ marketplace, nft, account }) {
             ))}
           </Row>
         </div>
-        :
+      ) : (
         <main style={{ padding: "1rem 0" }}>
           <h2>No uploaded songs</h2>
         </main>
-      }
-      {soldNFTs.length > 0 ?
+      )}
+      {soldNFTs.length > 0 ? (
         <div>
           <hr />
           <h2 className={styles.title}>Sold NFTs</h2>
@@ -184,7 +239,9 @@ export default function MyListedItems({ marketplace, nft, account }) {
                 <Card className={styles.card}>
                   <Card.Img variant="top" src={nftItem.image} />
                   <Card.Footer className={styles.footer}>
-                    <div>{ethers.utils.formatEther(nftItem.totalPrice)} ETH</div>
+                    <div>
+                      {ethers.utils.formatEther(nftItem.totalPrice)} ETH
+                    </div>
                     <div>{nftItem.name}</div>
                     <div>{nftItem.description}</div>
                   </Card.Footer>
@@ -193,11 +250,11 @@ export default function MyListedItems({ marketplace, nft, account }) {
             ))}
           </Row>
         </div>
-        :
+      ) : (
         <main style={{ padding: "1rem 0" }}>
           <h2>No sold NFTs</h2>
         </main>
-      }
+      )}
     </div>
   );
 }
