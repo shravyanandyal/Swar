@@ -188,7 +188,7 @@ const updateWeeklyData = (songId, type) => {
       } else {
         setSimulatedDay((prevDay) => prevDay + 1); // Increment simulated day
       }
-    }, 1 *60 * 1000); // Each minute represents a day
+    }, 1 * 60 * 1000); // Each minute represents a day
 
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
   }, [simulatedDay]); // Re-run the effect whenever simulatedDay changes
@@ -318,22 +318,28 @@ const updateWeeklyData = (songId, type) => {
       setCurrentSong(song); // Allow playback
       return; // Exit if the song is free
     }
-  
+
     const songName = song.songName; // Get the song name
-  
+
     try {
       // Fetch the list of purchased NFTs for the currentAccount
       const purchasedNFTs = await getPurchasedNFTs(currentAccount);
       console.log("Purchased NFTs:", purchasedNFTs);
       console.log("Song name:", song.name);
-      console.log("Purchased NFT names:", purchasedNFTs.map(nft => nft.name));
-  
+      console.log(
+        "Purchased NFT names:",
+        purchasedNFTs.map((nft) => nft.name)
+      );
+
       // Check access for each purchased NFT
       let hasAccess = false;
       let needsRenewal = false;
-  
+
       for (const nft of purchasedNFTs) {
-        const access = await marketplaceContract.hasAccess(nft.itemId, currentAccount);
+        const access = await marketplaceContract.hasAccess(
+          nft.itemId,
+          currentAccount
+        );
         if (nft.name === songName) {
           if (access) {
             hasAccess = true; // User has access
@@ -343,14 +349,16 @@ const updateWeeklyData = (songId, type) => {
           break; // No need to check further once we find the song
         }
       }
-  
+
       console.log("Has access:", hasAccess);
       console.log("Needs renewal:", needsRenewal);
-  
+
       if (hasAccess) {
         setCurrentSong(song); // Allow playback
       } else if (needsRenewal) {
-        alert("Your access to this song has expired. Please renew your NFT to continue listening."); // Alert for renewal
+        alert(
+          "Your access to this song has expired. Please renew your NFT to continue listening."
+        ); // Alert for renewal
       } else {
         alert("You need to purchase the NFT to access this song."); // Inform user of lack of access
       }
@@ -359,49 +367,56 @@ const updateWeeklyData = (songId, type) => {
       alert("An error occurred while checking access."); // Inform user of error
     }
   };
-  
-  
+
   const getPurchasedNFTs = async (account) => {
     const purchases = []; // Initialize purchases array
-  
+
     try {
       // Fetch purchased items from marketplace by querying Bought events with the buyer set as the user
-      const filter = marketplaceContract.filters.Bought(null, null, null, null, null, account);
+      const filter = marketplaceContract.filters.Bought(
+        null,
+        null,
+        null,
+        null,
+        null,
+        account
+      );
       const results = await marketplaceContract.queryFilter(filter);
-  
+
       // Fetch metadata of each NFT and add that to listedItem object.
-      const purchases = await Promise.all(results.map(async (i) => {
-        // Fetch arguments from each result
-        i = i.args;
-  
-        // Get URI from NFT contract
-        const uri = await nft.tokenURI(i.tokenId);
-  
-        // Fetch the NFT metadata stored on IPFS
-        const response = await fetch(uri);
-        const metadata = await response.json();
-  
-        // Get total price of item (item price + fee)
-        const totalPrice = await marketplaceContract.getTotalPrice(i.itemId);
-  
-        // Define purchased item object
-        return {
-          totalPrice,
-          price: i.price,
-          itemId: i.itemId,
-          name: metadata.name,
-          description: metadata.description,
-          image: metadata.image,
-        };
-      }));
-  
+      const purchases = await Promise.all(
+        results.map(async (i) => {
+          // Fetch arguments from each result
+          i = i.args;
+
+          // Get URI from NFT contract
+          const uri = await nft.tokenURI(i.tokenId);
+
+          // Fetch the NFT metadata stored on IPFS
+          const response = await fetch(uri);
+          const metadata = await response.json();
+
+          // Get total price of item (item price + fee)
+          const totalPrice = await marketplaceContract.getTotalPrice(i.itemId);
+
+          // Define purchased item object
+          return {
+            totalPrice,
+            price: i.price,
+            itemId: i.itemId,
+            name: metadata.name,
+            description: metadata.description,
+            image: metadata.image,
+          };
+        })
+      );
+
       return purchases; // Return the array of purchased NFTs
     } catch (error) {
       console.error("Error loading purchased items:", error);
       return []; // Return an empty array on error
     }
   };
-  
 
   const updateStreamedSongs = async (song) => {
     const existingStreamedSongs =
