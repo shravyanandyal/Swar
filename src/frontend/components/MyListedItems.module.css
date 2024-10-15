@@ -1,31 +1,67 @@
+/* mylistedmodule.css */
+
 .container {
-    max-width: 1400px;
-    margin: auto;
-    padding: 20px;
-    border-radius: 8px;
-  }
+  max-width: 1400px;
+  margin: auto;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #121212; /* Darker background for contrast */
+}
+
+.title {
+  color: #1db954; /* Lighter color for better visibility */
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem; /* Larger font size */
   
-  .title {
-    color: white;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .card {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease-in-out;
-    color: black;
-    font-size: medium;
-    font-weight: 400;
-  }
-  
-  .card:hover {
-    transform: translateY(-5px);
-  }
-  
-  .footer {
-    background-color: #4CAF50;
-    color: white;
-    text-align: center;
-    padding: 10px 20px;
-  }
+}
+
+.row {
+  display: flex; /* Enable Flexbox */
+  flex-wrap: wrap; /* Allow wrapping of items */
+}
+
+.col {
+  display: flex; /* Enable Flexbox for columns */
+  flex-direction: column; /* Stack children vertically */
+}
+
+.card {
+  display: flex; /* Enable Flexbox for cards */
+  flex-direction: column; /* Stack card contents vertically */
+  height: 100%; /* Make the card take full height */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  color: black;
+  font-size: medium;
+  font-weight: 400;
+  border-radius: 10px; /* Rounded corners */
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.card img {
+  border-radius: 10px 10px 0 0; /* Round image corners */
+}
+
+.footer {
+  background-color: #4CAF50;
+  color: white;
+  text-align: center;
+  padding: 10px 20px;
+  border-radius: 0 0 10px 10px; /* Rounded corners at the bottom */
+}
+
+.button {
+  margin: 5px; /* Space between buttons */
+}
+
+.alert {
+  color: #FFA500; /* Alert color for status change */
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+}

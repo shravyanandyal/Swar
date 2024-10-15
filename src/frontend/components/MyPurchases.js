@@ -227,12 +227,12 @@ export default function MyPurchases({ marketplace, nft, account }) {
                 <Card style={{ backgroundColor: "black" }}>
                   <Card.Img variant="top" src={item.image} />
                   <Card.Body>
-                    <Card.Title>{item.name}</Card.Title>
-                    <Card.Text>{item.description}</Card.Text>
+                    <Card.Title style={{color:"grey"}}>{item.name}</Card.Title>
+                    <Card.Text style={{color:"grey"}} >{item.description}</Card.Text>
                     <div style={{ color: item.hasAccess ? "green" : "red" }}>
                       {item.hasAccess ? "Access Granted" : "Access Expired"}
                     </div>
-                    <div>
+                    <div style={{color:"grey"}}>
                       {item.daysLeft > 0 ||
                       item.hoursLeft > 0 ||
                       item.minutesLeft > 0
@@ -240,7 +240,7 @@ export default function MyPurchases({ marketplace, nft, account }) {
                         : ""}
                     </div>
                   </Card.Body>
-                  <Card.Footer>
+                  <Card.Footer style={{color:"grey"}}>
                     {localStorage.getItem(`lastRenewalPrice-${item.itemId}`)? localStorage.getItem(`lastRenewalPrice-${item.itemId}`):item.totalPrice } ETH
                     {/* Renew button only if access is expired */}
                     <br />

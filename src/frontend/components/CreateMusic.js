@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './Create.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./Create.css";
 
 const pinataApiKey = process.env.REACT_APP_PINATA_API_KEY;
 const pinataSecretApiKey = process.env.REACT_APP_PINATA_SECRET_API_KEY;
@@ -8,14 +8,14 @@ const pinataSecretApiKey = process.env.REACT_APP_PINATA_SECRET_API_KEY;
 const Create = () => {
   const [thumbnail, setThumbnail] = useState(null);
   const [audio, setAudio] = useState(null);
-  const [songName, setSongName] = useState('');
-  const [artistName, setArtistName] = useState('');
-  const [genre, setGenre] = useState(''); // New state for genre
+  const [songName, setSongName] = useState("");
+  const [artistName, setArtistName] = useState("");
+  const [genre, setGenre] = useState(""); // New state for genre
   const [songs, setSongs] = useState([]); // Initialize as an empty array
-  const [pinataLink, setPinataLink] = useState('');
-  const [currentAccount, setCurrentAccount] = useState('');
+  const [pinataLink, setPinataLink] = useState("");
+  const [currentAccount, setCurrentAccount] = useState("");
   const [uploading, setUploading] = useState(false); // State to track uploading state
-  const [songLanguage, setSongLanguage] = useState(''); // New state for song language
+  const [songLanguage, setSongLanguage] = useState(""); // New state for song language
   const [isFree, setIsFree] = useState(false); // New state for isFree
 
   useEffect(() => {
@@ -30,8 +30,15 @@ const Create = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!thumbnail || !audio || !songName || !artistName || !genre || !songLanguage) {
-      alert('Please fill in all fields');
+    if (
+      !thumbnail ||
+      !audio ||
+      !songName ||
+      !artistName ||
+      !genre ||
+      !songLanguage
+    ) {
+      alert("Please fill in all fields");
       return;
     }
 
@@ -44,7 +51,8 @@ const Create = () => {
       const audioIpfsHash = await uploadFileToPinata(audio);
 
       // Create new song object
-      const lastSongId = songs && songs.length > 0 ? songs[songs.length - 1].id : 0;
+      const lastSongId =
+        songs && songs.length > 0 ? songs[songs.length - 1].id : 0;
 
       const newSong = {
         id: lastSongId + 1,
@@ -61,7 +69,7 @@ const Create = () => {
       };
 
       // Update songs state with new song
-      const updatedSongs = [...songs, newSong];  // This will always be an array
+      const updatedSongs = [...songs, newSong]; // This will always be an array
       setSongs(updatedSongs);
 
       // Upload updated JSON to Pinata
@@ -69,20 +77,17 @@ const Create = () => {
       setPinataLink(`https://gateway.pinata.cloud/ipfs/${updatedJsonIpfsHash}`);
 
       // Store the new IPFS hash locally
-      localStorage.setItem('songsIpfsHash', updatedJsonIpfsHash);
+      localStorage.setItem("songsIpfsHash", updatedJsonIpfsHash);
 
-      alert('Song uploaded successfully!');
-
+      alert("Song uploaded successfully!");
 
       if (!isFree) {
         // Redirect to NFT creation page with the song ID
         window.location.href = `/create-nft/${newSong.id}`;
       }
-
-        
     } catch (error) {
-      console.error('Error uploading song:', error);
-      alert('Error uploading song');
+      console.error("Error uploading song:", error);
+      alert("Error uploading song");
     } finally {
       // Set uploading state back to false after upload completes (whether successful or not)
       setUploading(false);
@@ -93,57 +98,60 @@ const Create = () => {
     const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     const metadata = JSON.stringify({
       name: file.name,
       keyvalues: {
-        folder: 'Swar-songs',
+        folder: "Swar-songs",
       },
     });
-    formData.append('pinataMetadata', metadata);
+    formData.append("pinataMetadata", metadata);
 
     const options = JSON.stringify({
       cidVersion: 0,
     });
-    formData.append('pinataOptions', options);
+    formData.append("pinataOptions", options);
 
     try {
       const response = await axios.post(url, formData, {
         maxContentLength: Infinity,
         headers: {
-          'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
+          "Content-Type": `multipart/form-data; boundary=${formData._boundary}`,
           pinata_api_key: pinataApiKey,
           pinata_secret_api_key: pinataSecretApiKey,
         },
       });
-      
+
       return response.data.IpfsHash;
     } catch (error) {
-      console.error('Error uploading file to Pinata:', error);
+      console.error("Error uploading file to Pinata:", error);
       throw error; // Re-throw the error to propagate it upwards
     }
   };
 
   const fetchExistingData = async () => {
-    const existingIpfsHash = localStorage.getItem('songsIpfsHash');
+    const existingIpfsHash = localStorage.getItem("songsIpfsHash");
     if (!existingIpfsHash) {
-      console.log('No existing IPFS hash found in local storage.');
+      console.log("No existing IPFS hash found in local storage.");
       return;
     }
 
-    console.log('Existing IPFS hash from local storage:', existingIpfsHash);
+    console.log("Existing IPFS hash from local storage:", existingIpfsHash);
     try {
-      const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${existingIpfsHash}`);
-      if (response.data && Array.isArray(response.data)) {  // Ensure response data is an array
+      const response = await axios.get(
+        `https://gateway.pinata.cloud/ipfs/${existingIpfsHash}`
+      );
+      if (response.data && Array.isArray(response.data)) {
+        // Ensure response data is an array
         setSongs(response.data);
         setPinataLink(`https://gateway.pinata.cloud/ipfs/${existingIpfsHash}`);
       } else {
-        setSongs([]);  // If no songs are present, initialize as empty array
+        setSongs([]); // If no songs are present, initialize as empty array
       }
     } catch (error) {
-      console.error('Error fetching existing data:', error);
-      setSongs([]);  // On error, initialize as empty array
+      console.error("Error fetching existing data:", error);
+      setSongs([]); // On error, initialize as empty array
     }
   };
 
@@ -163,10 +171,12 @@ const Create = () => {
   const getAccount = async () => {
     // Example function to retrieve current MetaMask account
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
       setCurrentAccount(accounts[0]);
     } catch (error) {
-      console.error('Error fetching MetaMask account:', error);
+      console.error("Error fetching MetaMask account:", error);
     }
   };
 
@@ -175,54 +185,122 @@ const Create = () => {
       <h1>Upload Song</h1>
       <div className="form-container">
         <div className="file-upload-wrapper">
-          <input type="file" id="thumbnail" onChange={(e) => handleFileChange(e, setThumbnail)} />
+          <input
+            type="file"
+            id="thumbnail"
+            onChange={(e) => handleFileChange(e, setThumbnail)}
+          />
           <label htmlFor="thumbnail" className="file-upload-button">
             Choose Thumbnail
           </label>
-          {thumbnail && <div className="file-upload-name">{thumbnail.name}</div>}
+          {thumbnail && (
+            <div className="file-upload-name">{thumbnail.name}</div>
+          )}
         </div>
         <div className="file-upload-wrapper">
-          <input type="file" id="audio" onChange={(e) => handleFileChange(e, setAudio)} />
+          <input
+            type="file"
+            id="audio"
+            onChange={(e) => handleFileChange(e, setAudio)}
+          />
           <label htmlFor="audio" className="file-upload-button">
             Choose Song
           </label>
           {audio && <div className="file-upload-name">{audio.name}</div>}
         </div>
-        <div className='container-name'>
+        <div className="container-name">
           <label>Song Name:</label>
-          <input type="text" value={songName} onChange={(e) => setSongName(e.target.value)} />
+          <input
+            type="text"
+            value={songName}
+            onChange={(e) => setSongName(e.target.value)}
+          />
         </div>
-        <div className='container-name'>
+        <div className="container-name">
           <label>Artist Name:</label>
-          <input type="text" value={artistName} onChange={(e) => setArtistName(e.target.value)} />
+          <input
+            type="text"
+            value={artistName}
+            onChange={(e) => setArtistName(e.target.value)}
+          />
         </div>
-        <div className='container-name'>
+        <div className="container-name">
           <label>Genre:</label> {/* New input field for genre */}
-          <input type="text" value={genre} onChange={(e) => setGenre(e.target.value)} />
+          <input
+            type="text"
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+          />
         </div>
-        <div className='container-name'>
+        <div className="container-name">
           <label>Song Language:</label>
-          <input type="text" value={songLanguage} onChange={(e) => setSongLanguage(e.target.value)} />
+          <input
+            type="text"
+            value={songLanguage}
+            onChange={(e) => setSongLanguage(e.target.value)}
+          />
         </div>
-        <div className='container-name'>
+        <div className="container-name">
           <label>
-            Is this song free?  
-            <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
+            Is this song free?
+            <input
+              type="checkbox"
+              checked={isFree}
+              onChange={(e) => setIsFree(e.target.checked)}
+            />
           </label>
         </div>
         {/* Display "Uploading..." when uploading */}
-        <button className='submit-button' type="submit" onClick={handleSubmit} disabled={uploading}>
-          {uploading ? 'Uploading...' : 'Upload'}
+        <button
+          className="submit-button"
+          type="submit"
+          onClick={handleSubmit}
+          disabled={uploading}
+        >
+          {uploading ? "Uploading..." : "Upload"}
         </button>
       </div>
-      {pinataLink && (
-        <div>
-          <h2>Pinata Link:</h2>
-          <a href={pinataLink} target="_blank" rel="noopener noreferrer">
-            {pinataLink}
-          </a>
-        </div>
-      )}
+
+      <div>
+  <h2>Pinata Links:</h2>
+  <div style={{ display: "flex", flexDirection: "column" }}>
+    Song-{" "}
+    <a
+      href={`https://gateway.pinata.cloud/ipfs/${pinataLink}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {`https://gateway.pinata.cloud/ipfs/${pinataLink}`}
+    </a>
+    <br />
+    Archived Weekly Data-{" "}
+    <a
+      href={`https://gateway.pinata.cloud/ipfs/${localStorage.getItem(
+        "archivedWeeklyDataIpfsHash"
+      )}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {`https://gateway.pinata.cloud/ipfs/${localStorage.getItem(
+        "archivedWeeklyDataIpfsHash"
+      )}`}
+    </a>
+    <br />
+    User-{" "}
+    <a
+      href={`https://gateway.pinata.cloud/ipfs/${localStorage.getItem(
+        "usersIpfsHash"
+      )}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {`https://gateway.pinata.cloud/ipfs/${localStorage.getItem(
+        "usersIpfsHash"
+      )}`}
+    </a>
+  </div>
+</div>
+
     </div>
   );
 };

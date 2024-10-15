@@ -39,12 +39,16 @@ const Royalty = ({ songs, marketplace }) => {
     });
   }, []);
 
+
+
   useEffect(() => {
     // Load data from local storage for the current account
     const storedRoyaltyData = JSON.parse(localStorage.getItem("royaltyData")) || {};
     setRoyaltyInfo(storedRoyaltyData[currentAccount] || []);
   }, [currentAccount,localStorage.getItem("royaltyData")]);
 
+
+  
   const hasSongs = songs.some(
     (song) => song.artistId.toLowerCase() === currentAccount.toLowerCase()
   );

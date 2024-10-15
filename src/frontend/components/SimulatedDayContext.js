@@ -1,7 +1,13 @@
 // SimulatedDayContext.js
 import React, { createContext, useState, useEffect } from "react";
+import axios from "axios";
+
+const pinataApiKey = process.env.REACT_APP_PINATA_API_KEY;
+const pinataSecretApiKey = process.env.REACT_APP_PINATA_SECRET_API_KEY;
 
 export const SimulatedDayContext = createContext();
+
+
 
 export const SimulatedDayProvider = ({ children, songs }) => {
   const [simulatedDay, setSimulatedDay] = useState(() => {
@@ -20,6 +26,7 @@ export const SimulatedDayProvider = ({ children, songs }) => {
   const [royaltyInfo, setRoyaltyInfo] = useState([]);
   const [consecutiveInactiveWeeks, setConsecutiveInactiveWeeks] = useState({});
   const [currentAccount, setCurrentAccount] = useState("");
+  const [simulatedweeklyData, setSimulatedWeeklyData] = useState({});
 
   useEffect(() => {
     async function fetchAccount() {
@@ -79,6 +86,56 @@ export const SimulatedDayProvider = ({ children, songs }) => {
     }
   }, [currentAccount]);
 
+
+  const updateWeeklyData = (songId, type, simulatedDay) => {
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay()); // Start of the week (Sunday)
+    const weekKey = simulatedWeekStartDate.toISOString().split("T")[0]; // YYYY-MM-DD
+
+    setSimulatedWeeklyData((prevData) => {
+      const updatedData = { ...prevData };
+
+      if (!updatedData[songId]) {
+        updatedData[songId] = {};
+      }
+
+      if (!updatedData[songId][weekKey]) {
+        updatedData[songId][weekKey] = {
+          day1: { date: "", likes: 0, listens: 0,nft:0 },
+          day2: { date: "", likes: 0, listens: 0 ,nft:0 },
+          day3: { date: "", likes: 0, listens: 0 ,nft:0 },
+          day4: { date: "", likes: 0, listens: 0 ,nft:0 },
+          day5: { date: "", likes: 0, listens: 0 ,nft:0 },
+          day6: { date: "", likes: 0, listens: 0 ,nft:0 },
+          day7: { date: "", likes: 0, listens: 0 ,nft:0 },
+        };
+      }
+
+      const dayKey = `day${simulatedDay === 0 ? 7 : simulatedDay}`; // Adjust for simulated day
+
+      if (type === "like") {
+        updatedData[songId][weekKey][dayKey].likes += 1;
+      } else if (type === "unlike") {
+        updatedData[songId][weekKey][dayKey].likes = Math.max(
+          0,
+          updatedData[songId][weekKey][dayKey].likes - 1
+        );
+      } else if (type === "listen") {
+        updatedData[songId][weekKey][dayKey].listens += 1;
+      }
+      else if (type === "nft") { // Handle NFT updates
+        updatedData[songId][weekKey][dayKey].nft += 1; // Increment NFT count for the week
+    }
+
+      localStorage.setItem("weeklyData", JSON.stringify(updatedData)); // Save to local storage
+      console.log("updated weekly data", localStorage.getItem("weeklyData"));
+      return updatedData;
+    });
+  };
+
+
+
   const calculateRoyalties = () => {
     const alpha = 0.1;
     const beta = 1;
@@ -118,8 +175,19 @@ export const SimulatedDayProvider = ({ children, songs }) => {
         0
       );
 
+      const weeklyNfts=Object.values(weeklyData[songId] || {}).reduce(
+        (acc, week) =>
+          acc +
+          Object.values(week).reduce(
+            (total, day) => total + (day.nft || 0),
+            0
+          ),
+        0
+      );
+
       const totalLikes = song.likesCount || 0;
       const totalListens = song.listenCount || 0;
+      
 
       const hasActivity = weeklyLikes > 0 || weeklyListens > 0;
 
@@ -255,13 +323,50 @@ export const SimulatedDayProvider = ({ children, songs }) => {
           "archivedWeeklyData",
           JSON.stringify(archivedWeeklyData)
         );
+
+
+           // Update the archived data on IPFS
+         updateArchivedDataOnIPFS(archivedWeeklyData);
+         console.log("resetting weekly data")
         localStorage.removeItem("weeklyData");
         setWeeklyData({});
       
     }
   }, [currentAccount, songs, simulatedDay]);
 
-  /*
+
+
+
+// Function to store `archivedWeeklyData` on IPFS
+const updateArchivedDataOnIPFS = async (archivedWeeklyData) => {
+  try {
+    // Post `archivedWeeklyData` to Pinata to get IPFS hash
+    const response = await axios.post(
+      `https://api.pinata.cloud/pinning/pinJSONToIPFS`,
+      archivedWeeklyData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          pinata_api_key: pinataApiKey,
+          pinata_secret_api_key: pinataSecretApiKey,
+        },
+      }
+    );
+
+    console.log("Archived weekly data updated on IPFS:", response.data);
+
+    // Store the IPFS hash in localStorage for reference
+    localStorage.setItem("archivedWeeklyDataIpfsHash", response.data.IpfsHash);
+
+    return response.data.IpfsHash; // Return the IPFS hash if needed for further use
+  } catch (error) {
+    console.error("Error updating archived weekly data on IPFS:", error);
+  }
+};
+
+
+/*
+  
   useEffect(() => {
     const intervalId = setInterval(() => {
       setSimulatedDay((prevDay) => {
@@ -273,7 +378,9 @@ export const SimulatedDayProvider = ({ children, songs }) => {
 
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
   }, []);
-  */
+ 
+*/
+
 
   const resetDailyDataForNewDay = (simulatedDay) => {
     setDailyData((prevData) => {
@@ -293,7 +400,7 @@ export const SimulatedDayProvider = ({ children, songs }) => {
 
   return (
     <SimulatedDayContext.Provider
-      value={{ simulatedDay, setSimulatedDay, simulatedWeekStartDate }}
+      value={{ simulatedDay, setSimulatedDay, simulatedWeekStartDate ,updateWeeklyData }}
     >
       {children}
     </SimulatedDayContext.Provider>

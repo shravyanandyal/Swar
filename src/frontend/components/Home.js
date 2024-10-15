@@ -21,7 +21,7 @@ function Home({ marketplaceContract, nft, account }) {
   const [trendingSongs, setTrendingSongs] = useState([]);
   const ITEMS_PER_PAGE = 7; // Number of songs to show per page
   // // Load liked songs and streamed songs from localStorage
-  const { simulatedDay, simulatedWeekStartDate  } = useContext(SimulatedDayContext);
+  const { simulatedDay, simulatedWeekStartDate,updateWeeklyData   } = useContext(SimulatedDayContext);
   
   const [currentPages, setCurrentPages] = useState({
     trending: 0,
@@ -93,50 +93,6 @@ const updateWeeklyData = (songId, type) => {
   });
 };
 */
-
-  const updateWeeklyData = (songId, type, simulatedDay) => {
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay()); // Start of the week (Sunday)
-    const weekKey = simulatedWeekStartDate.toISOString().split("T")[0]; // YYYY-MM-DD
-
-    setWeeklyData((prevData) => {
-      const updatedData = { ...prevData };
-
-      if (!updatedData[songId]) {
-        updatedData[songId] = {};
-      }
-
-      if (!updatedData[songId][weekKey]) {
-        updatedData[songId][weekKey] = {
-          day1: { date: "", likes: 0, listens: 0 },
-          day2: { date: "", likes: 0, listens: 0 },
-          day3: { date: "", likes: 0, listens: 0 },
-          day4: { date: "", likes: 0, listens: 0 },
-          day5: { date: "", likes: 0, listens: 0 },
-          day6: { date: "", likes: 0, listens: 0 },
-          day7: { date: "", likes: 0, listens: 0 },
-        };
-      }
-
-      const dayKey = `day${simulatedDay === 0 ? 7 : simulatedDay}`; // Adjust for simulated day
-
-      if (type === "like") {
-        updatedData[songId][weekKey][dayKey].likes += 1;
-      } else if (type === "unlike") {
-        updatedData[songId][weekKey][dayKey].likes = Math.max(
-          0,
-          updatedData[songId][weekKey][dayKey].likes - 1
-        );
-      } else if (type === "listen") {
-        updatedData[songId][weekKey][dayKey].listens += 1;
-      }
-
-      localStorage.setItem("weeklyData", JSON.stringify(updatedData)); // Save to local storage
-      console.log("updated weekly data", localStorage.getItem("weeklyData"));
-      return updatedData;
-    });
-  };
 
  
   
@@ -552,6 +508,7 @@ const updateWeeklyData = (songId, type) => {
             date: today,
             likes: 0,
             listens: 0,
+            nft:0
           };
         }
 

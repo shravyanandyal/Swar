@@ -4,14 +4,22 @@ import { Row, Col, Card, Button } from "react-bootstrap";
 import styles from "./MyListedItems.module.css";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Import useHistory
+
+
 
 export default function MyListedItems({ marketplace, nft, account }) {
   const [loading, setLoading] = useState(true);
   const [listedItems, setListedItems] = useState([]);
   const [songs, setSongs] = useState([]);
   const [soldNFTs, setSoldNFTs] = useState([]);
+  const pinataApiKey = process.env.REACT_APP_PINATA_API_KEY;
+  const pinataSecretApiKey = process.env.REACT_APP_PINATA_SECRET_API_KEY;
   const ORIGINAL_PRICE = ethers.utils.parseEther("0.001"); // Original price is 0.001 ETH
 
+
+
+  const history = useNavigate(); // Initialize history
   const fetchSongsFromPinata = async () => {
     const songsIpfsHash = localStorage.getItem("songsIpfsHash");
     if (!songsIpfsHash) {
@@ -160,6 +168,80 @@ export default function MyListedItems({ marketplace, nft, account }) {
     setLoading(false);
   };
 
+  const toggleFreeStatus = async (songId) => {
+    // Ask the user for confirmation before changing the song status
+    const userConfirmed = window.confirm(
+      "Do you want to change the song's status?"
+    );
+
+    // If the user clicked "Cancel", exit the function
+    if (!userConfirmed) {
+      return;
+    }
+
+    try {
+      const songsIpfsHash = localStorage.getItem("songsIpfsHash");
+      const metadataResponse = await axios.get(
+        `https://gateway.pinata.cloud/ipfs/${songsIpfsHash}`
+      );
+
+      let metadata = metadataResponse.data;
+
+      // Find the specific song
+      const songToUpdate = metadata.find((song) => song.id === songId);
+
+      if (!songToUpdate) {
+        console.error("Song not found!");
+        return;
+      }
+      // Check if the current status is free
+      const isCurrentlyFree = songToUpdate.isFree;
+      // Find and toggle the isFree status for the specific song
+      metadata = metadata.map((song) => {
+        if (song.id === songId) {
+          return { ...song, isFree: !isCurrentlyFree }; // Toggle the isFree status
+        }
+        return song; // Return the song unchanged
+      });
+
+      console.log("Updated metadata:", metadata);
+
+      // Re-upload the updated metadata to IPFS
+      const updatedMetadataResponse = await axios.post(
+        `https://api.pinata.cloud/pinning/pinJSONToIPFS`,
+        metadata,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            pinata_api_key: pinataApiKey,
+            pinata_secret_api_key: pinataSecretApiKey,
+          },
+        }
+      );
+
+      console.log("Updated metadata on IPFS:", updatedMetadataResponse.data);
+
+      // Store the new IPFS hash in local storage
+      localStorage.setItem(
+        "songsIpfsHash",
+        updatedMetadataResponse.data.IpfsHash
+      );
+
+      // Redirect to Create NFT if changing from free to not free
+      if (isCurrentlyFree) {
+        // Redirect to the create NFT component
+        history(`/create-nft/${songId}`);
+      } else {
+        fetchSongs();
+        alert(
+          `Song status changed to: ${!isCurrentlyFree ? "Free" : "Not Free"}`
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling song status on IPFS:", error);
+    }
+  };
+
   useEffect(() => {
     loadListedItems();
     fetchSongs();
@@ -173,88 +255,76 @@ export default function MyListedItems({ marketplace, nft, account }) {
       </main>
     );
 
-  return (
-    <div className={styles.container}>
-      {listedItems.length > 0 ? (
-        <div>
-          <h2 className={styles.title}>Listed NFTs</h2>
-          <Row xs={1} md={2} lg={4} className="g-4 py-3">
-            {listedItems.map((item, idx) => (
-              <Col key={idx} className="overflow-hidden">
-                <Card className={styles.card}>
-                  <Card.Img variant="top" src={item.image} />
-                  <Card.Footer className={styles.footer}>
-                    <div>{ethers.utils.formatEther(item.dynamicPrice)} ETH</div>
-                    <div>{item.name}</div>
-                    <div>{item.artist}</div>
-                  </Card.Footer>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
-      ) : (
-        <main style={{ padding: "1rem 0" }}>
-          <h2>No listed NFTs</h2>
-        </main>
-      )}
-      {songs.length > 0 ? (
-        <div>
-          <hr />
-          <h2 className={styles.title}>Uploaded Songs</h2>
-          <Row xs={1} md={2} lg={4} className="g-4 py-3">
-            {songs.map((song, idx) => (
-              <Col key={idx} className="overflow-hidden">
-                <Card className={styles.card}>
-                  <Card.Img variant="top" src={song.thumbnail} />
-                  <Card.Body>
-                    <Card.Title>Song ID: {song.id}</Card.Title>
-                    <Card.Text>Song Name: {song.songName}</Card.Text>
-                    <Card.Text>Artist: {song.artistName}</Card.Text>
-                    <Card.Text>Listen Count: {song.listenCount}</Card.Text>
-                    <Link to={`/create-nft/${song.id}`}>
-                      <Button variant="primary">Create NFT</Button>
-                    </Link>
-                  </Card.Body>
-                  <Card.Footer>
-                    <audio controls src={song.audio} />
-                  </Card.Footer>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
-      ) : (
-        <main style={{ padding: "1rem 0" }}>
-          <h2>No uploaded songs</h2>
-        </main>
-      )}
-      {soldNFTs.length > 0 ? (
-        <div>
-          <hr />
-          <h2 className={styles.title}>Sold NFTs</h2>
-          <Row xs={1} md={2} lg={4} className="g-4 py-3">
-            {soldNFTs.map((nftItem, idx) => (
-              <Col key={idx} className="overflow-hidden">
-                <Card className={styles.card}>
-                  <Card.Img variant="top" src={nftItem.image} />
-                  <Card.Footer className={styles.footer}>
-                    <div>
-                      {ethers.utils.formatEther(nftItem.totalPrice)} ETH
-                    </div>
-                    <div>{nftItem.name}</div>
-                    <div>{nftItem.description}</div>
-                  </Card.Footer>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
-      ) : (
-        <main style={{ padding: "1rem 0" }}>
-          <h2>No sold NFTs</h2>
-        </main>
-      )}
-    </div>
-  );
+    return (
+      <div className={styles.container}>
+        {listedItems.length > 0 ? (
+          <div>
+            <h2 className={styles.title}>Listed NFTs</h2>
+            <Row xs={1} md={2} lg={4} className="g-4 py-3">
+              {listedItems.map((item, idx) => (
+                <Col key={idx} className={`overflow-hidden ${styles.col}`}>
+                  <Card className={styles.card}>
+                    <Card.Img variant="top" src={item.image} />
+                    <Card.Footer className={styles.footer}>
+                      <div>{ethers.utils.formatEther(item.dynamicPrice)} ETH</div>
+                      <div>{item.name}</div>
+                      <div>{item.artist}</div>
+                    </Card.Footer>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
+        ) : (
+          <main style={{ padding: "1rem 0" }}>
+            <h2>No listed NFTs</h2>
+          </main>
+        )}
+        
+        {songs.length > 0 ? (
+          <div>
+            <hr />
+            <h2 className={styles.title}>Uploaded Songs</h2>
+            <Row xs={1} md={2} lg={4} className="g-4 py-3">
+              {songs.map((song, idx) => (
+                <Col key={idx} className={`overflow-hidden ${styles.col}`}>
+                  <Card className={styles.card}>
+                    <Card.Img variant="top" src={song.thumbnail} />
+                    <Card.Body>
+                      <Card.Title>Song ID: {song.id}</Card.Title>
+                      <Card.Text>Song Name: {song.songName}</Card.Text>
+                      <Card.Text>Artist: {song.artistName}</Card.Text>
+                      <Card.Text>Listen Count: {song.listenCount}</Card.Text>
+                      <Card.Text className={styles.alert}>
+                        Status: {song.isFree ? "Free" : "Not Free"}
+                      </Card.Text>
+                      <Button
+                        variant={song.isFree ? "danger" : "success"}
+                        className={styles.button}
+                        onClick={() => toggleFreeStatus(song.id)}
+                      >
+                        {song.isFree ? "Not Free" : "Free"}
+                      </Button>
+                      <Link to={`/create-nft/${song.id}`}>
+                        <Button variant="primary" className={styles.button}>
+                          Create NFT
+                        </Button>
+                      </Link>
+                    </Card.Body>
+                    <Card.Footer>
+                      <audio controls src={song.audio} />
+                    </Card.Footer>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
+        ) : (
+          <main style={{ padding: "1rem 0" }}>
+            <h2>No uploaded songs</h2>
+          </main>
+        )}
+      </div>
+    );
+    
 }
