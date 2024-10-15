@@ -23,6 +23,7 @@ import NFTAddress from '../contractsData/NFT-address.json';
 import { Spinner, Modal, Button } from 'react-bootstrap';
 import { ethers } from 'ethers';
 import { MusicPlayerProvider } from './MusicPlayerContext';
+import { SimulatedDayProvider } from './SimulatedDayContext';
 
 import './App.css';
 import axios from 'axios';
@@ -277,6 +278,7 @@ function App() {
 
   return (
     <BrowserRouter>
+    <SimulatedDayProvider songs={songs}> 
       <MusicPlayerProvider>
       
         <div className="App">
@@ -299,7 +301,7 @@ function App() {
 
                 <Route path="/my-purchases" element={<MyPurchases marketplace={marketplace} nft={nft} account={account} />} />
                 
-                <Route path="/MyRoyalty" element={<MyRoyalty songs={songs}/>} />
+                <Route path="/MyRoyalty" element={<MyRoyalty songs={songs} marketplace={marketplace}/>} />
                   <Route path="/forYou" element={<ForYou/>} />
                   
                 
@@ -309,7 +311,7 @@ function App() {
         </div>
       
       </MusicPlayerProvider>
-
+      </SimulatedDayProvider>
       {/* Preferences Modal */}
       <Modal show={showPreferencesModal} onHide={() => setShowPreferencesModal(false)}>
         <Modal.Header closeButton>

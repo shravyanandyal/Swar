@@ -1,20 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
+import { SimulatedDayContext } from "./SimulatedDayContext";
+import "./Royalty.css"; // Importing CSS file
+import { ethers } from "ethers";
+import Analytics from "./Analytics"; // Import the Analytics component
 
-const Royalty = ({ songs }) => {
-  const [dailyData, setDailyData] = useState({});
-  const [weeklyData, setWeeklyData] = useState({});
+const Royalty = ({ songs, marketplace }) => {
+ 
   const [royaltyInfo, setRoyaltyInfo] = useState([]);
   const [currentAccount, setCurrentAccount] = useState("");
+  const [selectedSongData, setSelectedSongData] = useState(null);
+  const [selectedSongId, setSelectedSongId] = useState(null); // State to store the selected song ID
 
   useEffect(() => {
     async function fetchAccount() {
       if (window.ethereum) {
         try {
-          console.log("Requesting accounts...");
           const accounts = await window.ethereum.request({
             method: "eth_requestAccounts",
           });
-          console.log("Accounts received:", accounts);
           if (accounts.length > 0) {
             setCurrentAccount(accounts[0]);
           } else {
@@ -32,118 +35,159 @@ const Royalty = ({ songs }) => {
 
     // Listen for account changes
     window.ethereum.on("accountsChanged", (accounts) => {
-      console.log("Accounts changed:", accounts);
       setCurrentAccount(accounts[0]);
     });
   }, []);
 
   useEffect(() => {
-    // Load daily and weekly data from local storage
-    const storedDailyData = localStorage.getItem("dailyData");
-    const storedWeeklyData = localStorage.getItem("weeklyData");
+    // Load data from local storage for the current account
+    const storedRoyaltyData = JSON.parse(localStorage.getItem("royaltyData")) || {};
+    setRoyaltyInfo(storedRoyaltyData[currentAccount] || []);
+  }, [currentAccount,localStorage.getItem("royaltyData")]);
 
-    if (storedDailyData) {
-      setDailyData(JSON.parse(storedDailyData));
+  const hasSongs = songs.some(
+    (song) => song.artistId.toLowerCase() === currentAccount.toLowerCase()
+  );
+  const artistSongs = songs.filter(
+    (song) => song.artistId.toLowerCase() === currentAccount.toLowerCase()
+  );
+
+
+  const handleViewAnalytics = (songId) => {
+    const weeklyData = JSON.parse(localStorage.getItem("archivedWeeklyData")) || [];
+  
+    // Aggregate data across all weeks for the selected song
+    const aggregatedData = {};
+  
+    // Iterate through each week's data
+    weeklyData.forEach((week) => {
+      const songWeekData = week.data[songId] || { day1: {}, day2: {}, day3: {}, day4: {}, day5: {}, day6: {}, day7: {} }; // Extract the song's data for that week
+      const royaltiesForSong = week.royalties && week.royalties[songId];
+      if ( week.startDate) { // Ensure startDate exists
+        const { startDate } = week; // Extract startDate from the week object
+  
+        // Aggregate data based on the week's start date
+        aggregatedData[startDate] = { ...songWeekData ,royalty: royaltiesForSong };
+      }
+    });
+  
+    // Check if we have any aggregated data for the song
+    if (Object.keys(aggregatedData).length > 0) {
+      console.log("Aggregated data for the song:", aggregatedData);
+      setSelectedSongData(aggregatedData); // Pass the aggregated data for that song
+      setSelectedSongId(songId);
+    } else {
+      console.warn(`No data found for songId: ${songId}`);
     }
+  };
+  
+  
+  
 
-    if (storedWeeklyData) {
-      setWeeklyData(JSON.parse(storedWeeklyData));
+  const handleWithdrawRoyalties = async () => {
+    const artistTotalEarnings = royaltyInfo.reduce(
+      (acc, song) => acc + song.totalEarned,
+      0
+    );
+
+    if (artistTotalEarnings > 0) {
+      const amountToWithdraw = ethers.utils.parseEther(
+        (artistTotalEarnings * 0.8).toString()
+      );
+
+      try {
+        console.log(`Withdrawing: ${amountToWithdraw.toString()}`); // Log the amount for debugging
+
+        // await marketplace.withdrawRoyalties(amountToWithdraw, { from: currentAccount });
+        alert(
+          `You have successfully withdrawn ${amountToWithdraw.toString()} ETH.`
+        );
+
+        // Reset royalty info after withdrawal
+        const updatedRoyaltyInfo = royaltyInfo.map((song) => ({
+          ...song,
+          totalEarned: 0,
+        }));
+
+        // Update local storage with new royalty data after withdrawal
+        const allRoyaltyData =
+          JSON.parse(localStorage.getItem("royaltyData")) || {};
+        allRoyaltyData[currentAccount] = updatedRoyaltyInfo;
+        localStorage.setItem("royaltyData", JSON.stringify(allRoyaltyData));
+
+        setRoyaltyInfo(updatedRoyaltyInfo);
+      } catch (error) {
+        console.error("Error withdrawing royalties:", error);
+        alert("Failed to withdraw royalties. Please try again.");
+      }
+    } else {
+      alert("No royalties to withdraw.");
     }
-    console.log("artist is", currentAccount);
-    console.log("songs are", songs);
-  }, [currentAccount]);
-
-  useEffect(() => {
-    // Calculate royalties for the artist's songs
-    const calculateRoyalties = () => {
-      const alpha = 0.1; // Weight for likes
-      const beta = 1; // Weight for listens
-      const royalties = songs
-        .filter(
-          (song) => song.artistId.toLowerCase() === currentAccount.toLowerCase()
-        )
-        .map((song) => {
-          const songId = song.id;
-
-          // Calculate weekly likes and listens
-          const weeklyLikes = Object.values(weeklyData[songId] || {}).reduce(
-            (acc, week) =>
-              acc +
-              Object.values(week).reduce(
-                (total, day) => total + (day.likes || 0),
-                0
-              ),
-            0
-          );
-          const weeklyListens = Object.values(weeklyData[songId] || {}).reduce(
-            (acc, week) =>
-              acc +
-              Object.values(week).reduce(
-                (total, day) => total + (day.listens || 0),
-                0
-              ),
-            0
-          );
-
-          // Get total likes and listens from the song metadata
-          const totalLikes = song.likesCount || 0;
-          const totalListens = song.listenCount || 0;
-
-          // Prevent division by zero
-          const totalLikesAdjusted = totalLikes > 0 ? totalLikes : 1;
-          const totalListensAdjusted = totalListens > 0 ? totalListens : 1;
-
-          // Calculate contribution of weekly likes and listens to the total
-          const weeklyLikesContribution =
-            (weeklyLikes / totalLikesAdjusted) * 100; // as a percentage
-          const weeklyListensContribution =
-            (weeklyListens / totalListensAdjusted) * 100; // as a percentage
-
-          console.log(`Weekly Likes Contribution: ${weeklyLikesContribution}%`);
-          console.log(
-            `Weekly Listens Contribution: ${weeklyListensContribution}%`
-          );
-
-          // Apply weightage to the weekly contribution ratios
-          const weightedContribution =
-            alpha * (weeklyLikes / totalLikesAdjusted) +
-            beta * (weeklyListens / totalListensAdjusted);
-
-          // Base royalty rate
-          const baseRoyaltyRate = 0.1;
-
-          // Calculate royalty based on weighted contribution
-          const weeklyRoyalty = baseRoyaltyRate * (1 + weightedContribution);
-
-          // Total royalty earned (accumulating previous earnings)
-          const totalRoyalty = (royaltyInfo.totalEarned || 0) + weeklyRoyalty;
-
-          return {
-            songName: song.songName,
-            weeklyRoyalty: weeklyRoyalty,
-            totalEarned: totalRoyalty,
-            weeklyLikesContribution: weeklyLikesContribution.toFixed(2), // showing as percentage
-            weeklyListensContribution: weeklyListensContribution.toFixed(2), // showing as percentage
-          };
-        });
-
-      setRoyaltyInfo(royalties);
-    };
-
-    calculateRoyalties();
-  }, [currentAccount]);
+  };
 
   return (
-    <div>
-      <h2>My Songs</h2>
-      {royaltyInfo.map(({ songName, weeklyRoyalty, totalEarned }, index) => (
-        <div key={index}>
-          <p>
-            {songName}: Weekly Royalty Earned: {weeklyRoyalty.toFixed(2)} |
-            Total Earned: {totalEarned.toFixed(2)}
-          </p>
-        </div>
-      ))}
+    <div className="royalty-container">
+      <h2>Royalty Earnings Overview</h2>
+      {hasSongs ? (
+        <>
+          <table className="royalty-table">
+            <thead>
+              <tr>
+                <th>Song Name</th>
+                <th>Weekly Royalty</th>
+                <th>Total Earned</th>
+                <th>Status</th>
+                <th>View Analytics</th> {/* New header for analytics */}
+              </tr>
+            </thead>
+            <tbody>
+              {royaltyInfo.length > 0
+                ? royaltyInfo.map(
+                    (
+                      { songId,songName, weeklyRoyalty, totalEarned, inactive },
+                      index
+                    ) => (
+                      <tr key={index}>
+                        <td>{songName}</td>
+                        <td>{weeklyRoyalty.toFixed(5)}</td>
+                        <td>{totalEarned.toFixed(5)}</td>
+                        <td>{inactive ? "Royalty Paused" : "Active"}</td>
+                        <td>
+                          <button onClick={() => handleViewAnalytics(songId)}>
+                            View Analytics
+                          </button>{" "}
+                          {/* View Analytics button */}
+                        </td>
+                      </tr>
+                    )
+                  )
+                : artistSongs.map((song, index) => (
+                    <tr key={index}>
+                      <td>{song.songName}</td>
+                      <td>0.00</td>
+                      <td>0.00</td>
+                      <td>Active</td>
+                      <td>
+                        <button
+                          onClick={() => handleViewAnalytics(song.id)}
+                        >
+                          View Analytics
+                        </button>{" "}
+                        {/* View Analytics button */}
+                      </td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
+          <button className="withdraw-button" onClick={handleWithdrawRoyalties}>
+            Withdraw Royalties
+          </button>
+          {selectedSongData && <Analytics songData={selectedSongData}  />}{" "}
+          {/* Render Analytics if a song is selected */}
+        </>
+      ) : (
+        <p>No songs available for this artist.</p>
+      )}
     </div>
   );
 };

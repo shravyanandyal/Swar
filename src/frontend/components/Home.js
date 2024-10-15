@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useContext} from "react";
 import axios from "axios";
 import MusicPlayer from "./MusicPlayer";
 import { useMusicPlayer } from "./MusicPlayerContext";
 import "./Home.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import Royalty from "./MyRoyalty";
+import { SimulatedDayContext } from './SimulatedDayContext';
 
 const pinataApiKey = process.env.REACT_APP_PINATA_API_KEY;
 const pinataSecretApiKey = process.env.REACT_APP_PINATA_SECRET_API_KEY;
@@ -21,7 +21,8 @@ function Home({ marketplaceContract, nft, account }) {
   const [trendingSongs, setTrendingSongs] = useState([]);
   const ITEMS_PER_PAGE = 7; // Number of songs to show per page
   // // Load liked songs and streamed songs from localStorage
-  const [simulatedDay, setSimulatedDay] = useState(1); // State to track simulated day
+  const { simulatedDay, simulatedWeekStartDate  } = useContext(SimulatedDayContext);
+  
   const [currentPages, setCurrentPages] = useState({
     trending: 0,
     language: {},
@@ -97,7 +98,7 @@ const updateWeeklyData = (songId, type) => {
     const today = new Date();
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay()); // Start of the week (Sunday)
-    const weekKey = weekStart.toISOString().split("T")[0]; // YYYY-MM-DD
+    const weekKey = simulatedWeekStartDate.toISOString().split("T")[0]; // YYYY-MM-DD
 
     setWeeklyData((prevData) => {
       const updatedData = { ...prevData };
@@ -137,78 +138,8 @@ const updateWeeklyData = (songId, type) => {
     });
   };
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log(`Simulated Day: ${simulatedDay}`);
-
-      // Reset daily data at the beginning of each simulated day
-      resetDailyDataForNewDay(simulatedDay);
-
-      if (simulatedDay === 7) {
-        console.log("End of simulated week. Triggering royalty calculation...");
-        console.log("calculating royaties ");
-        const currentWeeklyData = JSON.parse(
-          localStorage.getItem("weeklyData")
-        );
-
-        if (!currentWeeklyData) return;
-
-        // Retrieve any previously archived data
-
-        let archivedWeeklyData = JSON.parse(
-          localStorage.getItem("archivedWeeklyData")
-        );
-        if (!Array.isArray(archivedWeeklyData)) {
-          archivedWeeklyData = [];
-        }
-        console.log("archieveed data", archivedWeeklyData);
-
-        // Create an array entry for the current week's data
-        const newWeekEntry = {
-          startDate: Object.keys(currentWeeklyData)[0], // Get the starting date from the current weekly data
-          data: currentWeeklyData,
-        };
-
-        console.log("new week data", newWeekEntry);
-        // Push the new week entry into the archived data array
-        archivedWeeklyData.push(newWeekEntry);
-
-        // Save the updated archive back to local storage
-        localStorage.setItem(
-          "archivedWeeklyData",
-          JSON.stringify(archivedWeeklyData)
-        );
-
-        console.log("Archived Weekly Data:", archivedWeeklyData);
-
-        // Optionally, clear the current weekly data after archiving
-        localStorage.removeItem("weeklyData"); // Clear weekly data for the new week
-        setWeeklyData({}); // Reset the state for a new week
-        setSimulatedDay(1); // Reset for next cycle
-      } else {
-        setSimulatedDay((prevDay) => prevDay + 1); // Increment simulated day
-      }
-    }, 1 * 60 * 1000); // Each minute represents a day
-
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, [simulatedDay]); // Re-run the effect whenever simulatedDay changes
-
-  // Function to handle resetting daily data at the start of each simulated day
-  const resetDailyDataForNewDay = (simulatedDay) => {
-    setDailyData((prevData) => {
-      const today = `Simulated-Day-${simulatedDay}`;
-
-      const updatedDailyData = {}; // Reset for a new day
-
-      // Optionally, you can preserve old data or just start fresh each simulated day
-      console.log(`Resetting daily data for: ${today}`);
-
-      // Clear old daily data and return an empty object for the new day
-      localStorage.setItem("dailyData", JSON.stringify(updatedDailyData));
-
-      return updatedDailyData;
-    });
-  };
+ 
+  
 
   useEffect(() => {
     const getLikedSongs = () => {

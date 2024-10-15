@@ -14,8 +14,9 @@ async function main() {
   const gasPrice = ethers.utils.parseUnits('25', 'gwei'); // Adjusted gas price
 
   try {
-    // Deploy Marketplace contract
-    const marketplace = await Marketplace.deploy(1, { gasLimit, gasPrice });
+    const swarMusicAccount = "0x84e5E368522f4E35a933C51A4f7FA801344f6F9a"; // Replace with the actual SWAR Music account
+    const marketplace = await Marketplace.deploy(1, swarMusicAccount, { gasLimit, gasPrice });
+    
     await marketplace.deployed();
 
     // Deploy NFT contract

@@ -1,0 +1,94 @@
+/* Container Styling */
+.royalty-container {
+    margin: 20px;
+    padding: 20px;
+    background-color: #202020;
+    color: white;
+    border-radius: 10px;
+  }
+  
+  /* Table Styling */
+  .royalty-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .royalty-table thead {
+    background-color: #1db954; /* Spotify green for the header */
+  }
+  
+  .royalty-table th, .royalty-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #444;
+  }
+  
+  .royalty-table th {
+    font-weight: bold;
+    color: white;
+  }
+  
+  .royalty-table tbody tr:nth-child(even) {
+    background-color: #282828; /* Alternate row color */
+  }
+  
+  .royalty-table tbody tr:nth-child(odd) {
+    background-color: #303030;
+  }
+  
+  .royalty-table td {
+    color: white;
+  }
+  
+  /* Adding hover effect */
+  .royalty-table tbody tr:hover {
+    background-color: #333;
+  }
+  
+  /* Responsive styling for mobile */
+  @media (max-width: 768px) {
+    .royalty-table thead {
+      display: none;
+    }
+  
+    .royalty-table, .royalty-table tbody, .royalty-table tr, .royalty-table td {
+      display: block;
+      width: 100%;
+    }
+  
+    .royalty-table tr {
+      margin-bottom: 15px;
+    }
+  
+    .royalty-table td {
+      padding-left: 50%;
+      position: relative;
+      text-align: right;
+    }
+  
+    .royalty-table td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 10px;
+      padding-right: 10px;
+      white-space: nowrap;
+      text-align: left;
+    }
+  }
+  
+  .withdraw-button {
+    background-color: #1db954; /* Spotify Green */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    font-size: 16px;
+    
+  }
+  
+  .withdraw-button:hover {
+    background-color: #17a743; /* Darker green on hover */
+  }
+  
