@@ -120,7 +120,7 @@ export default function MyPurchases({ marketplace, nft, account }) {
       );
 
       setPurchases(purchases);
-    } catch (error) {
+    } catch (error) { 
       console.error("Error loading purchased items:", error);
     } finally {
       setLoading(false);
