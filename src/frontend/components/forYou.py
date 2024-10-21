@@ -6,6 +6,7 @@ from sklearn.preprocessing import normalize
 import cohere
 import numpy as np
 from sklearn.metrics import precision_score, recall_score
+from collections import defaultdict
 
 app = Flask(__name__)
 CORS(app)
@@ -53,10 +54,7 @@ def get_combined_user_profile(user_data):
 def get_user_liked_and_streamed_songs(user_data):
     liked_songs_ids = {song['id'] for song in user_data.get("songsLiked", [])}
     streamed_songs_ids = {song['id'] for song in user_data.get("songsStreamed", [])}
-    
-    # Combine liked and streamed songs to form the ground truth
-    ground_truth_ids = liked_songs_ids.union(streamed_songs_ids)
-    return ground_truth_ids
+    return liked_songs_ids.union(streamed_songs_ids)
 
 # Function to get recommended song IDs
 def get_recommended_song_ids(recommended_songs):
@@ -70,113 +68,114 @@ def calculate_accuracy(user_data, recommended_songs):
     if not ground_truth_ids:
         return {"precision": None, "recall": None, "f1": None, "message": "No ground truth available for this user."}
     
-    # Convert to binary form: 1 if song was liked/streamed, 0 if not
     y_true = [1 if song_id in ground_truth_ids else 0 for song_id in recommended_song_ids]
-    y_pred = [1] * len(recommended_song_ids)  # All recommended songs are treated as 1
-
-    # Calculate precision and recall
+    y_pred = [1] * len(recommended_song_ids)
+    
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
     f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-    correct_predictions = sum([1 for true, pred in zip(y_true, y_pred) if true == pred])
-    accuracy = correct_predictions / len(y_true)
+    accuracy = sum([1 for true, pred in zip(y_true, y_pred) if true == pred]) / len(y_true)
 
     return {
         "precision": precision,
         "recall": recall,
         "f1": f1,
-        'accuracy': accuracy
+        "accuracy": accuracy
     }
 
+# Function to select diverse recommendations by artist
+def select_diverse_recommendations(recommended_songs, max_per_artist=2):
+    artist_song_map = defaultdict(list)
+    for song in recommended_songs:
+        artist_name = song['artistName']
+        artist_song_map[artist_name].append(song)
+
+    diverse_recommendations = []
+    for artist, songs in artist_song_map.items():
+        diverse_recommendations.extend(songs[:max_per_artist])
+
+    if len(diverse_recommendations) < 14:
+        remaining_songs = [song for song in recommended_songs if song not in diverse_recommendations]
+        diverse_recommendations.extend(remaining_songs[:14 - len(diverse_recommendations)])
+
+    return diverse_recommendations[:14]
+
+# Function to select diverse recommendations by genre
+def select_diverse_recommendations_by_genre(recommended_songs, max_per_genre=2):
+    genre_song_map = defaultdict(list)
+    for song in recommended_songs:
+        genre = song.get('genre', 'Unknown genre')
+        genre_song_map[genre].append(song)
+
+    diverse_recommendations = []
+    for genre, songs in genre_song_map.items():
+        diverse_recommendations.extend(songs[:max_per_genre])
+
+    if len(diverse_recommendations) < 14:
+        remaining_songs = [song for song in recommended_songs if song not in diverse_recommendations]
+        diverse_recommendations.extend(remaining_songs[:14 - len(diverse_recommendations)])
+
+    return diverse_recommendations[:14]
+
+# Function to apply both diversity filters
+def select_final_recommendations(recommended_songs):
+    artist_filtered = select_diverse_recommendations(recommended_songs, max_per_artist=2)
+    genre_filtered = select_diverse_recommendations_by_genre(artist_filtered, max_per_genre=2)
+    return genre_filtered
 
 @app.route('/api/recommend', methods=['POST'])
 def recommend_songs():
-    # Get the incoming data from the request
     data = request.get_json()
     print("\nIncoming request data:")
     print(data)
     
-    # Extract the userId and the userData, which contains the users array
     user_id = data.get('userId')
     user_data = data.get('userData', {})
     users = user_data.get('users', [])
     songs_data = data.get('songsData', [])
     
-    # Check if users is a list and user_id exists
     if not users or not user_id:
         return jsonify({"error": "Invalid data"}), 400
     
-    # Find the current user's data in the users array
     current_user_data = next((user for user in users if user["userId"] == user_id), None)
-    print("\nCurrent user data:")
-    print(current_user_data)
-    
     if not current_user_data:
         return jsonify({"error": "User not found"}), 404
     
-    # User's combined profile
     user_profile = get_combined_user_profile(current_user_data)
     
-    # Generate embeddings for user profile and songs using Cohere API
     song_data = [f"{song.get('genre', 'Unknown genre')} {song['artistName']} {song.get('language', 'Unknown language')}" for song in songs_data]
-    song_data.append(user_profile)  # Add user profile as the last element
-    
-    print("\nSong data for embedding:")
-    print(song_data)
+    song_data.append(user_profile)
     
     cohere_embeddings = get_cohere_embeddings(song_data)
-    print("\nCohere embeddings:")
-    print(cohere_embeddings)
     
-    # Separate song embeddings and user profile embedding
     song_vectors = np.array(cohere_embeddings[:-1])
     user_profile_vector = np.array(cohere_embeddings[-1]).reshape(1, -1)
     
-    # Normalize vectors
     song_vectors = normalize(song_vectors)
     user_profile_vector = normalize(user_profile_vector)
     
-    # Calculate cosine similarity between user profile and songs
     cohere_similarities = cosine_similarity(user_profile_vector, song_vectors).flatten()
-    print("\nCohere similarities:")
-    print(cohere_similarities)
     
-    # Now using TF-IDF as an additional feature extraction method
     tfidf_vectorizer = TfidfVectorizer()
     tfidf_matrix = tfidf_vectorizer.fit_transform(song_data)
     
-    print("\nTF-IDF matrix:")
-    print(tfidf_matrix.toarray())
-    
-    # Separate TF-IDF vectors for songs and user profile
     user_vector_tfidf = tfidf_matrix[-1]
     song_vectors_tfidf = tfidf_matrix[:-1]
     
-    # Calculate cosine similarity for TF-IDF
     cosine_similarities_tfidf = cosine_similarity(user_vector_tfidf, song_vectors_tfidf).flatten()
-    print("\nTF-IDF similarities:")
-    print(cosine_similarities_tfidf)
     
-    # Combine both Cohere and TF-IDF similarity scores
     combined_similarities = (cohere_similarities + cosine_similarities_tfidf) / 2
-    print("\nCombined similarities:")
-    print(combined_similarities)
     
-    # Get all recommended songs based on combined similarity score
-    recommended_indices = combined_similarities.argsort()[-10:][::-1]  # Top 5 recommended songs
-    print("\nRecommended indices:")
-    print(recommended_indices)
-    
+    recommended_indices = combined_similarities.argsort()[-14:][::-1]
     recommended_songs = [songs_data[i] for i in recommended_indices]
-    print("\nRecommended songs:")
-    print(recommended_songs)
     
-     # Calculate accuracy metrics (precision, recall, F1-score)
-    accuracy_metrics = calculate_accuracy(current_user_data, recommended_songs)
-    print("\nAccuracy metrics:")
+    # Apply diversity techniques to refine recommendations
+    final_recommendations = select_final_recommendations(recommended_songs)
+    
+    accuracy_metrics = calculate_accuracy(current_user_data, final_recommendations)
     print(accuracy_metrics)
-
-    return jsonify({"recommendedSongs": recommended_songs,"accuracyMetrics": accuracy_metrics})
+    
+    return jsonify({"recommendedSongs": final_recommendations, "accuracyMetrics": accuracy_metrics})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
