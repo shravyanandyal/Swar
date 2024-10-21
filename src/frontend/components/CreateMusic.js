@@ -251,14 +251,17 @@ const Create = () => {
           </label>
         </div>
         {/* Display "Uploading..." when uploading */}
+
+        <div className="submit-button">
         <button
-          className="submit-button"
+          
           type="submit"
           onClick={handleSubmit}
           disabled={uploading}
         >
           {uploading ? "Uploading..." : "Upload"}
         </button>
+        </div>
       </div>
 
       <div>
@@ -266,11 +269,11 @@ const Create = () => {
   <div style={{ display: "flex", flexDirection: "column" }}>
     Song-{" "}
     <a
-      href={`https://gateway.pinata.cloud/ipfs/${pinataLink}`}
+      href={pinataLink}
       target="_blank"
       rel="noopener noreferrer"
     >
-      {`https://gateway.pinata.cloud/ipfs/${pinataLink}`}
+      {pinataLink}
     </a>
     <br />
     Archived Weekly Data-{" "}

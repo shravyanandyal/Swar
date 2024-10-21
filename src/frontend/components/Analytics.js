@@ -28,12 +28,14 @@ const Analytics = ({ songData }) => {
 
   const likesData = [];
   const listensData = [];
+  const nftsData=[];
   const royaltyData = [];
 
   weekKeys.forEach((week) => {
     const days = songData[week] || {};
     let totalLikes = 0;
     let totalListens = 0;
+    let totalNfts=0
     let totalRoyalty = 0;
 
     // Iterate through each day's data to accumulate likes and listens
@@ -48,10 +50,11 @@ const Analytics = ({ songData }) => {
         if (
           nestedDayData &&
           typeof nestedDayData.likes === 'number' &&
-          typeof nestedDayData.listens === 'number'
+          typeof nestedDayData.listens === 'number' && typeof nestedDayData.nft === 'number'
         ) {
           totalLikes += nestedDayData.likes;
           totalListens += nestedDayData.listens;
+          totalNfts+=nestedDayData.nft;
         }
       });
     });
@@ -63,6 +66,7 @@ const Analytics = ({ songData }) => {
 
     likesData.push(totalLikes);
     listensData.push(totalListens);
+    nftsData.push(totalNfts);
     // Push the royalty value with precision
     royaltyData.push(parseFloat(totalRoyalty.toFixed(5)));
   });
@@ -84,6 +88,15 @@ const Analytics = ({ songData }) => {
         data: listensData,
         borderColor: 'blue',
         backgroundColor: 'rgba(0, 0, 255, 0.2)',
+        fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      },
+      {
+        label: 'NFTs',
+        data: nftsData,
+        borderColor: 'yellow',
+        backgroundColor: 'rgba(0, 0, 150, 0.2)',
         fill: true,
         pointRadius: 5,
         pointHoverRadius: 7,

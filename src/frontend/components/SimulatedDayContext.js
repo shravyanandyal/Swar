@@ -7,8 +7,6 @@ const pinataSecretApiKey = process.env.REACT_APP_PINATA_SECRET_API_KEY;
 
 export const SimulatedDayContext = createContext();
 
-
-
 export const SimulatedDayProvider = ({ children, songs }) => {
   const [simulatedDay, setSimulatedDay] = useState(() => {
     const storedDay = localStorage.getItem("simulatedDay");
@@ -21,13 +19,19 @@ export const SimulatedDayProvider = ({ children, songs }) => {
     return storedStartDate ? new Date(storedStartDate) : new Date(); // Default to today if not found
   });
 
+  // Track when to notify about royalties
+  const [royaltyNotification, setRoyaltyNotification] = useState(false);
+  const [withdrawalNotification, setWithdrawalNotification] = useState(false);
+
   const [dailyData, setDailyData] = useState({});
   const [weeklyData, setWeeklyData] = useState({});
   const [royaltyInfo, setRoyaltyInfo] = useState([]);
   const [consecutiveInactiveWeeks, setConsecutiveInactiveWeeks] = useState({});
   const [currentAccount, setCurrentAccount] = useState("");
   const [simulatedweeklyData, setSimulatedWeeklyData] = useState({});
-
+  const [notifications, setNotifications] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     async function fetchAccount() {
       if (window.ethereum) {
@@ -86,11 +90,7 @@ export const SimulatedDayProvider = ({ children, songs }) => {
     }
   }, [currentAccount]);
 
-
   const updateWeeklyData = (songId, type, simulatedDay) => {
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay()); // Start of the week (Sunday)
     const weekKey = simulatedWeekStartDate.toISOString().split("T")[0]; // YYYY-MM-DD
 
     setSimulatedWeeklyData((prevData) => {
@@ -102,13 +102,13 @@ export const SimulatedDayProvider = ({ children, songs }) => {
 
       if (!updatedData[songId][weekKey]) {
         updatedData[songId][weekKey] = {
-          day1: { date: "", likes: 0, listens: 0,nft:0 },
-          day2: { date: "", likes: 0, listens: 0 ,nft:0 },
-          day3: { date: "", likes: 0, listens: 0 ,nft:0 },
-          day4: { date: "", likes: 0, listens: 0 ,nft:0 },
-          day5: { date: "", likes: 0, listens: 0 ,nft:0 },
-          day6: { date: "", likes: 0, listens: 0 ,nft:0 },
-          day7: { date: "", likes: 0, listens: 0 ,nft:0 },
+          day1: { date: "", likes: 0, listens: 0, nft: 0 },
+          day2: { date: "", likes: 0, listens: 0, nft: 0 },
+          day3: { date: "", likes: 0, listens: 0, nft: 0 },
+          day4: { date: "", likes: 0, listens: 0, nft: 0 },
+          day5: { date: "", likes: 0, listens: 0, nft: 0 },
+          day6: { date: "", likes: 0, listens: 0, nft: 0 },
+          day7: { date: "", likes: 0, listens: 0, nft: 0 },
         };
       }
 
@@ -123,10 +123,10 @@ export const SimulatedDayProvider = ({ children, songs }) => {
         );
       } else if (type === "listen") {
         updatedData[songId][weekKey][dayKey].listens += 1;
-      }
-      else if (type === "nft") { // Handle NFT updates
+      } else if (type === "nft") {
+        // Handle NFT updates
         updatedData[songId][weekKey][dayKey].nft += 1; // Increment NFT count for the week
-    }
+      }
 
       localStorage.setItem("weeklyData", JSON.stringify(updatedData)); // Save to local storage
       console.log("updated weekly data", localStorage.getItem("weeklyData"));
@@ -134,11 +134,10 @@ export const SimulatedDayProvider = ({ children, songs }) => {
     });
   };
 
-
-
   const calculateRoyalties = () => {
     const alpha = 0.1;
     const beta = 1;
+    const gama = 0.05;
     const inactivityThreshold = 3;
 
     // Get global inactivity data for all songs
@@ -175,21 +174,18 @@ export const SimulatedDayProvider = ({ children, songs }) => {
         0
       );
 
-      const weeklyNfts=Object.values(weeklyData[songId] || {}).reduce(
+      const weeklyNfts = Object.values(weeklyData[songId] || {}).reduce(
         (acc, week) =>
           acc +
-          Object.values(week).reduce(
-            (total, day) => total + (day.nft || 0),
-            0
-          ),
+          Object.values(week).reduce((total, day) => total + (day.nft || 0), 0),
         0
       );
 
       const totalLikes = song.likesCount || 0;
       const totalListens = song.listenCount || 0;
-      
+      const totalNFT = song.totalNft || 0;
 
-      const hasActivity = weeklyLikes > 0 || weeklyListens > 0;
+      const hasActivity = weeklyLikes > 0 || weeklyListens > 0 || totalNFT > 0;
 
       // Update inactivity for the song
       if (!hasActivity) {
@@ -211,10 +207,12 @@ export const SimulatedDayProvider = ({ children, songs }) => {
       if (!isInactive) {
         const totalLikesAdjusted = totalLikes > 0 ? totalLikes : 1;
         const totalListensAdjusted = totalListens > 0 ? totalListens : 1;
+        const totalNFTadjusted = totalNFT > 0 ? totalNFT : 1;
 
         const weightedContribution =
           alpha * (weeklyLikes / totalLikesAdjusted) +
-          beta * (weeklyListens / totalListensAdjusted);
+          beta * (weeklyListens / totalListensAdjusted) +
+          gama * (weeklyNfts / totalNFTadjusted);
 
         const baseRoyaltyRate = 0.1;
         weeklyRoyalty = baseRoyaltyRate * (1 + weightedContribution);
@@ -262,6 +260,8 @@ export const SimulatedDayProvider = ({ children, songs }) => {
     }
 
     if (simulatedDay === 7) {
+      setRoyaltyNotification(true);
+      /*
       const royalties = calculateRoyalties();
       console.log("royalties collected", royalties);
 
@@ -330,44 +330,48 @@ export const SimulatedDayProvider = ({ children, songs }) => {
          console.log("resetting weekly data")
         localStorage.removeItem("weeklyData");
         setWeeklyData({});
-      
+        */
+    } else if (simulatedDay % 2 === 0) {
+      // Notify every 2 days
+      console.log("setting notification here");
+      setWithdrawalNotification(true);
     }
   }, [currentAccount, songs, simulatedDay]);
 
+  // Function to store `archivedWeeklyData` on IPFS
+  const updateArchivedDataOnIPFS = async (archivedWeeklyData) => {
+    try {
+      // Post `archivedWeeklyData` to Pinata to get IPFS hash
+      const response = await axios.post(
+        `https://api.pinata.cloud/pinning/pinJSONToIPFS`,
+        archivedWeeklyData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            pinata_api_key: pinataApiKey,
+            pinata_secret_api_key: pinataSecretApiKey,
+          },
+        }
+      );
 
+      console.log("Archived weekly data updated on IPFS:", response.data);
 
+      // Store the IPFS hash in localStorage for reference
+      localStorage.setItem(
+        "archivedWeeklyDataIpfsHash",
+        response.data.IpfsHash
+      );
 
-// Function to store `archivedWeeklyData` on IPFS
-const updateArchivedDataOnIPFS = async (archivedWeeklyData) => {
-  try {
-    // Post `archivedWeeklyData` to Pinata to get IPFS hash
-    const response = await axios.post(
-      `https://api.pinata.cloud/pinning/pinJSONToIPFS`,
-      archivedWeeklyData,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          pinata_api_key: pinataApiKey,
-          pinata_secret_api_key: pinataSecretApiKey,
-        },
-      }
-    );
+      return response.data.IpfsHash; // Return the IPFS hash if needed for further use
+    } catch (error) {
+      console.error("Error updating archived weekly data on IPFS:", error);
+    }
+  };
 
-    console.log("Archived weekly data updated on IPFS:", response.data);
+  /*
 
-    // Store the IPFS hash in localStorage for reference
-    localStorage.setItem("archivedWeeklyDataIpfsHash", response.data.IpfsHash);
-
-    return response.data.IpfsHash; // Return the IPFS hash if needed for further use
-  } catch (error) {
-    console.error("Error updating archived weekly data on IPFS:", error);
-  }
-};
-
-
-/*
-  
   useEffect(() => {
+  
     const intervalId = setInterval(() => {
       setSimulatedDay((prevDay) => {
         const newDay = prevDay === 7 ? 1 : prevDay + 1; // Reset to 1 after day 7
@@ -377,10 +381,137 @@ const updateArchivedDataOnIPFS = async (archivedWeeklyData) => {
     }, 1 * 30 * 1000); // Each minute represents a day
 
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, []);
  
-*/
+  }, []);
+ */
 
+  // Function to reset notifications (optional)
+  const resetNotifications = () => {
+    setRoyaltyNotification(false);
+    setWithdrawalNotification(false);
+  };
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const archivedData =
+        JSON.parse(localStorage.getItem("archivedWeeklyData")) || [];
+      const royaltyData = JSON.parse(localStorage.getItem("royaltyData")) || {};
+      const userNotifications =
+        JSON.parse(localStorage.getItem(`notifications_${currentAccount}`)) ||
+        [];
+
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/notifications",
+          archivedData
+        );
+        const fetchedNotifications = response.data;
+
+        // Combine fetched notifications with user notifications, but place new ones at the beginning
+        const newNotifications = [
+          ...fetchedNotifications,
+          ...userNotifications,
+        ];
+        console.log(
+          "New notifications combined with ML notifications:",
+          newNotifications
+        );
+        setNotifications(newNotifications);
+      } catch (err) {
+        setError("Failed to fetch notifications.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [currentAccount]);
+
+
+  const clearNotifications = () => {
+    localStorage.removeItem(`notifications_${currentAccount}`);
+    setNotifications([]);
+    console.log("Clearing notifications for user:", currentAccount);
+    console.log("Notifications after clearing:", notifications);
+
+  };
+
+
+  useEffect(() => {
+    const royaltyData = JSON.parse(localStorage.getItem("royaltyData"));
+
+    // Check if royalty data exists
+    if (royaltyData) {
+      const notificationDate = new Date(
+        new Date(simulatedWeekStartDate).getTime() +
+          (simulatedDay - 1) * 24 * 60 * 60 * 1000
+      ).toLocaleDateString();
+      const currentUserNotifications = [];
+
+      
+      Object.keys(royaltyData).forEach((user) => {
+        const newNotifications = [];
+        const userRoyaltyInfo = royaltyData[user];
+
+        // Calculate total earnings for the user
+        const userTotalEarned = userRoyaltyInfo.reduce(
+          (sum, song) => sum + (song.totalEarned || 0),
+          0
+        );
+
+        // Add royalty day notification if applicable
+        if (royaltyNotification && userTotalEarned > 0) {
+          newNotifications.push({
+            message: `Hey ${user}, it's royalty day! Check your earnings.`,
+            date: notificationDate,
+          });
+        }
+
+        // Add withdrawal reminder notification if applicable and total earnings are greater than zero
+        if (withdrawalNotification && userTotalEarned > 0) {
+          newNotifications.push({
+            message: `Hey ${user}, don't forget to withdraw your royalties!`,
+            date: notificationDate,
+          });
+        }
+
+        // Update localStorage for the specific user with new notifications
+        if (newNotifications.length > 0) {
+          const existingNotifications =
+            JSON.parse(localStorage.getItem(`notifications_${user}`)) || [];
+          const updatedNotifications = [
+            ...newNotifications,
+            ...existingNotifications,
+          ];
+          localStorage.setItem(
+            `notifications_${user}`,
+            JSON.stringify(updatedNotifications)
+          );
+
+          if (user === currentAccount) {
+            currentUserNotifications.push(...newNotifications);
+          }
+        }
+      });
+
+      // Reset notifications after processing
+      
+
+      if (currentUserNotifications.length > 0) {
+        // Add new notifications to the top of the list
+        setNotifications((prev) => [...currentUserNotifications, ...prev]);
+        resetNotifications();
+      }
+
+      
+    }
+  }, [
+    royaltyNotification,
+    withdrawalNotification,
+    resetNotifications,
+    simulatedDay,
+    simulatedWeekStartDate,
+  ]);
 
   const resetDailyDataForNewDay = (simulatedDay) => {
     setDailyData((prevData) => {
@@ -400,7 +531,20 @@ const updateArchivedDataOnIPFS = async (archivedWeeklyData) => {
 
   return (
     <SimulatedDayContext.Provider
-      value={{ simulatedDay, setSimulatedDay, simulatedWeekStartDate ,updateWeeklyData }}
+      value={{
+        simulatedDay,
+        setSimulatedDay,
+        simulatedWeekStartDate,
+        updateWeeklyData,
+        royaltyNotification,
+        withdrawalNotification,
+        resetNotifications,
+        notifications,
+        setNotifications,
+        loading,
+        error,
+        clearNotifications
+      }}
     >
       {children}
     </SimulatedDayContext.Provider>

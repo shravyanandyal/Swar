@@ -24,7 +24,7 @@ import { Spinner, Modal, Button } from 'react-bootstrap';
 import { ethers } from 'ethers';
 import { MusicPlayerProvider } from './MusicPlayerContext';
 import { SimulatedDayProvider } from './SimulatedDayContext';
-
+import Notification from './notifications.js';
 import './App.css';
 import axios from 'axios';
 import About from './About.js';
@@ -303,6 +303,7 @@ function App() {
                 
                 <Route path="/MyRoyalty" element={<MyRoyalty songs={songs} marketplace={marketplace}/>} />
                   <Route path="/forYou" element={<ForYou/>} />
+                  <Route path="/Notifications" element={<Notification songs={songs} userAddress={account}/>} />
                   
                 
               </Routes>

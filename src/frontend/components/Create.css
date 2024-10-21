@@ -75,8 +75,14 @@ textarea.form-control {
 }
 
 .submit-button {
+   
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.submit-button button{
+    background-color: #28a745;
     padding: 12px 30px;
-    background-color: #28a745; /* Green submit button */
     color: #ffffff;
     border: none;
     border-radius: 5px;
@@ -84,9 +90,6 @@ textarea.form-control {
     transition: background-color 0.3s;
 }
 
-.submit-button:hover {
-    background-color: #218838; /* Darker green on hover */
-}
 
 .error-message {
     color: #dc3545; /* Red error message */

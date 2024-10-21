@@ -1,0 +1,105 @@
+.notification-container {
+    width: 100%; /* Allow full width */
+    padding: 20px;
+    background-color: #121212; /* Dark background for contrast */
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+    font-size: 28px; /* Increased size for better visibility */
+    color: rgb(41, 183, 28);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.notification-list {
+    list-style: none;
+    padding: 0;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    background-color: #1a1a1a; /* Slightly lighter dark for contrast */
+    margin-bottom: 15px;
+    padding: 15px; /* Added padding for a more spacious feel */
+    border-radius: 8px; /* Rounder corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s; /* Smooth hover effect */
+    width: 100%; /* Make item take full width */
+}
+
+.notification-item:hover {
+    transform: translateY(-2px); /* Lift effect on hover */
+}
+
+.notification-thumbnail {
+    width: 70px; /* Slightly larger thumbnail */
+    height: 70px;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-right: 20px; /* Increased space between thumbnail and text */
+}
+
+.notification-info {
+    flex: 1;
+}
+
+.notification-title {
+    font-size: 20px; /* Increased title size for emphasis */
+    color: #16d122; /* Bright green for attention */
+    margin: 0;
+    font-weight: bold; /* Bold text for emphasis */
+}
+
+.notification-artist {
+    font-size: 16px; /* Increased artist name size */
+    color: #f3eeee;
+    margin: 5px 0;
+}
+
+.notification-message {
+    font-size: 15px; /* Slightly larger message text */
+    color: #e0e0e0; /* Light gray for better readability */
+    margin: 5px 0;
+}
+
+.notification-message:hover {
+    color: #16d122; /* Change color on hover for interaction */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .notification-item {
+        flex-direction: column; /* Stack items on small screens */
+        align-items: flex-start; /* Align items to the start */
+    }
+
+    .notification-thumbnail {
+        margin-bottom: 10px; /* Space below thumbnail */
+    }
+}
+.notification-date {
+    font-size: 0.8em;
+    color: gray;
+}
+
+.clear-notifications-button {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #17a70a; /* Red */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.clear-button{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.clear-notifications-button:hover {
+    background-color: #123905; /* Darker Red */
+}
