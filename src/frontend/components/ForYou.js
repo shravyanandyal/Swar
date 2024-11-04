@@ -97,7 +97,7 @@ const Recommendation = () => {
       if (userId) {  // Fetch recommendations only if userId is available
         try {
           setLoading(true); // Start loading
-          const response = await axios.post('http://127.0.0.1:5000/api/recommend', {
+          const response = await axios.post('http://127.0.0.1:5001/api/recommend', {
             userId: userId,  
             songsData: songsData,
             userData: userData
